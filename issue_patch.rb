@@ -239,12 +239,11 @@ module RedmineMeetingRoomCalendar
                          INNER JOIN custom_values d3 ON d3.custom_field_id=(#{@custom_field_id_end})
                          INNER JOIN custom_values d4 ON d4.custom_field_id=(#{@custom_field_id_uchastniki})
                          where (project_id in (#{@project_ids_ill}))
-                         AND (start_date >= '#{(self[:start_date] - 7).to_s}')
-                         AND (due_date <= '#{(self[:start_date] + 7).to_s}')
+                         AND (start_date >= '#{(self[:start_date] - 14).to_s}')
+                         AND (due_date <= '#{(self[:start_date] + 14).to_s}')
                          AND (d2.customized_id = u.id)
                          AND (d3.customized_id = u.id)
                          AND (d4.customized_id = u.id);")
-                  # AND (due_date >= '#{(self[:start_date]).to_s}') тяжелый запрос
                   a = self.custom_field_values[ucha]
 
                   b = a.to_s
@@ -262,62 +261,73 @@ module RedmineMeetingRoomCalendar
                     c = 0
                   end
 
+                  @new_start_date = self.start_date.to_s
+                  @new_due_date = self.due_date.to_s
+                  @new_start_time = self.custom_field_values[start_time].to_s
+                  @new_end_time = self.custom_field_values[end_time].to_s
+
                   @issues.length.times do |i|
-                    ##### если совещ выпадает внутри отст на несколько дней #####
-                    if (@issues[i].start_date.to_s < self.start_date.to_s) &&
-                       (@issues[i].due_date.to_s > self.due_date.to_s) then
+                    old_start_date = @issues[i].start_date.to_s
+                    old_due_date = @issues[i].due_date.to_s
+                    old_start_time = @issues[i].d2_value
+                    old_end_time = @issues[i].d3_value
+                    uchastnik = @issues[i].d4_value
+
+                    ##### если совещ выпадает внутри отсутствт на несколько дней #####
+                    if (old_start_date < @new_start_date) &&
+                        (old_due_date > @new_due_date) then
                       if c == 1
                         for k in s do
-                          if @issues[i].d4_value == k then
+                          if uchastnik == k then
                             absence_massage(k)
                           end
                         end
                       else
-                        if @issues[i].d4_value == s then
+                        if uchastnik == s then
                           absence_massage(s)
                         end
                       end
 
-                    ##### внутри дня #####
-                    elsif (@issues[i].start_date.to_s == self.start_date.to_s) &&
-                          (@issues[i].due_date.to_s == self.due_date.to_s) &&
-                          (@issues[i].d2_value < self.custom_field_values[end_time].to_s) &&
-                          (@issues[i].d3_value > self.custom_field_values[start_time].to_s) then
+                      ##### внутри дня #####
+                    elsif (old_start_date == @new_start_date) &&
+                        (old_due_date == @new_due_date) &&
+                        (old_start_time < @new_end_time) &&
+                        (old_end_time > @new_start_time) then
                       if c == 1
                         for k in s do
-                          if @issues[i].d4_value == k then
+                          if uchastnik == k then
                             absence_massage(k)
                           end
                         end
                       else
-                        if @issues[i].d4_value == s then
+                        if uchastnik == s then
                           absence_massage(s)
                         end
                       end
 
-                    ##### если отсутствие больше дня + имеет время начала и время окончания #####
-                    elsif (@issues[i].start_date.to_s != @issues[i].due_date.to_s) then
-                      if (@issues[i].due_date.to_s==self.due_date.to_s) && (@issues[i].d3_value > self.custom_field_values[start_time].to_s) then
+                      ##### если отсутствие больше дня + имеет время начала и время окончания #####
+                    elsif (old_start_date != old_due_date) then
+                      if (old_due_date == @new_due_date) && (old_end_time > @new_start_time) then
                         if c == 1
                           for k in s do
-                            if @issues[i].d4_value == k then
+                            if uchastnik == k then
                               absence_massage(k)
                             end
                           end
                         else
-                          if @issues[i].d4_value == s then
+                          if uchastnik == s then
                             absence_massage(s)
                           end
                         end
-                      elsif (@issues[i].start_date.to_s==self.start_date.to_s) && (@issues[i].d2_value < self.custom_field_values[end_time].to_s) then
+                      elsif (old_start_date == @new_start_date) && (old_start_time < @new_end_time) then
                         if c == 1
                           for k in s do
-                            if @issues[i].d4_value == k then
+                            if uchastnik == k then
                               absence_massage(k)
                             end
                           end
                         else
-                          if @issues[i].d4_value == s then
+                          if uchastnik == s then
                             absence_massage(s)
                           end
                         end
@@ -339,8 +349,3 @@ module RedmineMeetingRoomCalendar
     end
   end
 end
-
-
-
-
-
